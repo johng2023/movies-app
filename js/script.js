@@ -1,5 +1,15 @@
 const global = {
   currentPage: window.location.pathname,
+  search: {
+    term: "",
+    type: "",
+    page: 1,
+    totalPages: 1,
+  },
+  api: {
+    API_KEY: "a769210e9d438e4b8597ceb3fc318f9b",
+    API_URL: "https://api.themoviedb.org/3/",
+  },
 };
 
 //display slider movies
@@ -49,6 +59,36 @@ function initSwiper() {
       },
     },
   });
+}
+
+// Search movies/shows
+
+async function search() {
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+
+  global.search.type = urlParams.get("type");
+  global.search.term = urlParams.get("search-term");
+
+  if (global.search.term !== "" && global.search.term !== null) {
+    // request and display
+    const results = await searchAPIData();
+    console.log(results);
+  } else {
+    showAlert("Enter a Movie or TV Show");
+  }
+}
+
+// Alert Function
+function showAlert(message, className) {
+  const alertElement = document.createElement("div");
+  alertElement.classList.add("alert", className);
+  alertElement.appendChild(document.createTextNode(message));
+  document.querySelector("#alert").appendChild(alertElement);
+
+  setTimeout(() => {
+    alertElement.remove();
+  }, 3000);
 }
 
 async function displayPopularMovies() {
@@ -295,13 +335,37 @@ function addCommas(number) {
 
 //Fetch data from themoviedb
 async function fetchAPIData(endpoint) {
-  const API_KEY = "a769210e9d438e4b8597ceb3fc318f9b";
-  const API_URL = "https://api.themoviedb.org/3/";
+  const API_KEY = global.api.API_KEY;
+  const API_URL = global.api.API_URL;
 
   showSpinner();
 
   const response = await fetch(
     `${API_URL}${endpoint}?api_key=${API_KEY}&language=en-US`
+  );
+  const data = await response.json();
+
+  hideSpinner();
+  return data;
+}
+
+function showSpinner() {
+  document.querySelector(".spinner").classList.add("show");
+}
+
+function hideSpinner() {
+  document.querySelector(".spinner").classList.remove("show");
+}
+
+// Get request for search
+async function searchAPIData() {
+  const API_KEY = global.api.API_KEY;
+  const API_URL = global.api.API_URL;
+
+  showSpinner();
+
+  const response = await fetch(
+    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}`
   );
   const data = await response.json();
 
@@ -349,7 +413,7 @@ function init() {
       displayShowDetails();
       break;
     case "/search.html":
-      console.log("search");
+      search();
       break;
   }
 
