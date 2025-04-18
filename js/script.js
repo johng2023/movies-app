@@ -5,6 +5,7 @@ const global = {
     type: "",
     page: 1,
     totalPages: 1,
+    totalResults: 0,
   },
   api: {
     API_KEY: "a769210e9d438e4b8597ceb3fc318f9b",
@@ -72,7 +73,11 @@ async function search() {
 
   if (global.search.term !== "" && global.search.term !== null) {
     // request and display
-    const { results, total_pages, page } = await searchAPIData();
+    const { results, total_pages, page, total_results } = await searchAPIData();
+
+    global.search.page = page;
+    global.search.totalPages = total_pages;
+    global.search.totalResults = total_results;
 
     if (results.length === 0) {
       showAlert("No Results Found");
@@ -87,6 +92,12 @@ async function search() {
 }
 
 function displaySearchResults(results) {
+  // clear previous results
+
+  document.querySelector("#search-results").innerHTML = "";
+  document.querySelector("#search-results-heading").innerHTML = "";
+  document.querySelector("#pagination").innerHTML = "";
+
   results.forEach((result) => {
     const searchContainer = document.querySelector("#search-results");
     const card = document.createElement("div");
@@ -124,7 +135,46 @@ function displaySearchResults(results) {
               </p>
             </div>`;
 
+    document.querySelector(
+      "#search-results-heading"
+    ).innerHTML = `<h2>${results.length} of ${global.search.totalResults} Results for ${global.search.term}`;
+
     searchContainer.appendChild(card);
+  });
+
+  displayPagination();
+}
+
+// Function for pages
+
+function displayPagination() {
+  const div = document.createElement("div");
+  div.classList.add("pagination");
+  div.innerHTML = `<button class="btn btn-primary" id="prev">Prev</button>
+          <button class="btn btn-primary" id="next">Next</button>
+          <div class="page-counter">Page ${global.search.page} of ${global.search.totalPages}</div>`;
+
+  document.querySelector("#pagination").appendChild(div);
+
+  // disable prev and next button
+  if (global.search.page === 1) {
+    document.querySelector("#prev").disabled = true;
+  }
+
+  if (global.search.page === global.search.totalPages) {
+    document.querySelector("#next").disabled = true;
+  }
+
+  document.querySelector("#next").addEventListener("click", async () => {
+    global.search.page++;
+    const { results } = await searchAPIData();
+    displaySearchResults(results);
+  });
+
+  document.querySelector("#prev").addEventListener("click", async () => {
+    global.search.page--;
+    const { results } = await searchAPIData();
+    displaySearchResults(results);
   });
 }
 
@@ -414,7 +464,7 @@ async function searchAPIData() {
   showSpinner();
 
   const response = await fetch(
-    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}`
+    `${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}&page=${global.search.page}`
   );
   const data = await response.json();
 
